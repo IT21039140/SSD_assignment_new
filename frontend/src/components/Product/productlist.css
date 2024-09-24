@@ -1,0 +1,140 @@
+.bannerImage {
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+.filter-sec {
+  height: 6vh;
+  background-color: #99775C;
+}
+
+/* Container styles */
+/* Container styles */
+.tab-content {
+  width: 100%;
+  padding: 2%;
+  margin: 0%;
+  background-color: aliceblue;
+}
+.product-item {
+  margin-bottom: 30px;
+  display: inline-block; /* Make items align horizontally */
+  text-align: center; /* Center all content */
+  width: 60%; /* Ensure items take full width */
+  border: 2px solid #510662; /* Border color */
+  margin: 1%; /* Padding around items */
+  padding: 1%;
+  height: 800px;
+}
+
+.product-image {
+  width: 60%;
+  height: 500px;
+  border-radius: 5px;
+  object-fit: cover; /* Ensure image covers the container */
+}
+
+.product-title {
+  font-size: 1.1rem;
+  margin-top: 10px;
+  color: #EAE7DD; /* Title color */
+}
+
+.item-price {
+  font-size: 1.2rem;
+  color: #510662; /* Price color */
+}
+
+.cart-button {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: center;
+  text-align: center; /* Ensure text inside the button is centered */
+  width: 100%;
+}
+
+/* Button styles */
+.btn-wrap {
+  background-color: #510662;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+}
+
+.btn-wrap:hover {
+  background-color: #ec0aca;
+}
+
+.view-btn,
+.wishlist-btn {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.view-btn:hover,
+.wishlist-btn:hover {
+  color: #290227;
+}
+
+/* Pagination styles */
+.paging-navigation {
+  margin-top: 50px;
+}
+
+.page-numbers {
+  display: inline-block;
+  padding: 5px 10px;
+  margin: 0 5px;
+  border-radius: 5px;
+  color: #333;
+  text-decoration: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.page-numbers.current {
+  background-color: #ff00f2;
+  color: #fff;
+}
+
+.page-numbers:hover {
+  background-color: #f0f0f0;
+}
+
+/* Arrow icon styles */
+.icon {
+  font-size: 1.2rem;
+}
+
+/* Tooltip styles */
+.tooltip {
+  position: relative;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: 120px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
