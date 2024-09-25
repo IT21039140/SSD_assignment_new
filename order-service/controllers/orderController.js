@@ -70,63 +70,62 @@ const createOrder = async (req, res) => {
 
   try {
     // Sanitize and prepare the data
-    const orderData = {};
+    const sanitizedUserId = sanitizeUserId(userId);
+    const sanitizedProducts = sanitizeProducts(products);
+    const sanitizedSubtotal = sanitizeAmount(subtotal);
+    const sanitizedTotal = sanitizeAmount(total);
 
-    // Sanitize userId
-    if (mongoose.Types.ObjectId.isValid(userId)) {
-      orderData.userId = mongoose.Types.ObjectId(userId); // Ensure userId is an ObjectId
-    } else {
-      return res.status(400).json({ error: "Invalid userId" });
-    }
-
-    // Validate and sanitize products
-    if (Array.isArray(products) && products.length > 0) {
-      orderData.products = products.map((product) => {
-        if (mongoose.Types.ObjectId.isValid(product.productId)) {
-          return {
-            productId: mongoose.Types.ObjectId(product.productId), // Sanitize productId to ObjectId
-            quantity: parseInt(product.quantity, 10) || 1, // Ensure quantity is a number
-          };
-        } else {
-          throw new Error("Invalid productId in products array");
-        }
-      });
-    } else {
-      return res
-        .status(400)
-        .json({ error: "products must be a non-empty array" });
-    }
-
-    // Sanitize subtotal and total
-    if (typeof subtotal === "number" && subtotal >= 0) {
-      orderData.subtotal = parseFloat(subtotal); // Convert to float
-    } else {
-      return res.status(400).json({ error: "Invalid subtotal" });
-    }
-
-    if (typeof total === "number" && total >= 0) {
-      orderData.total = parseFloat(total); // Convert to float
-    } else {
-      return res.status(400).json({ error: "Invalid total" });
-    }
-
-    // Optional fields
-    if (shipping) orderData.shipping = shipping;
-    if (order_status) orderData.order_status = order_status;
-    if (payment_status) orderData.payment_status = payment_status;
+    // Create a new order object with sanitized data
+    const orderData = {
+      userId: sanitizedUserId,
+      products: sanitizedProducts,
+      subtotal: sanitizedSubtotal,
+      total: sanitizedTotal,
+      shipping: shipping || undefined, // Optional
+      order_status: order_status || undefined, // Optional
+      payment_status: payment_status || undefined, // Optional
+    };
 
     // Create the order with sanitized data
     const order = await Order.create(orderData);
     res.status(201).json(order); // Use 201 for created resource
   } catch (error) {
     console.error(error); // Log error for debugging
-    if (error.message === "Invalid productId in products array") {
-      return res
-        .status(400)
-        .json({ error: "Invalid productId in products array" });
-    }
     res.status(500).json({ error: "Internal server error" });
   }
+};
+
+// Function to sanitize userId
+const sanitizeUserId = (userId) => {
+  if (mongoose.Types.ObjectId.isValid(userId)) {
+    return mongoose.Types.ObjectId(userId); // Convert to ObjectId if valid
+  }
+  throw new Error("Invalid userId");
+};
+
+// Function to sanitize products
+const sanitizeProducts = (products) => {
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new Error("products must be a non-empty array");
+  }
+
+  return products.map((product) => {
+    if (!mongoose.Types.ObjectId.isValid(product.productId)) {
+      throw new Error("Invalid productId in products array");
+    }
+    return {
+      productId: mongoose.Types.ObjectId(product.productId), // Sanitize productId to ObjectId
+      quantity: parseInt(product.quantity, 10) || 1, // Ensure quantity is a number
+    };
+  });
+};
+
+// Function to sanitize subtotal and total
+const sanitizeAmount = (amount) => {
+  if (typeof amount === "number" && amount >= 0) {
+    return parseFloat(amount); // Convert to float
+  }
+  throw new Error("Invalid amount");
 };
 
 // Delete order
