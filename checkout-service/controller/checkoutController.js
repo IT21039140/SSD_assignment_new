@@ -33,8 +33,9 @@ const handleOrder = (data, customer, lineItems) => {
   shipping = data.shipping_details.address;
   payment_status = data.payment_status;
 
+  // **Change made here:**
   axios
-    .post("http://localhost:5003/api/orders/", {
+    .post("https://localhost:5003/api/orders/", { // Changed from http to https
       userId,
       products,
       subtotal,
