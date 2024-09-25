@@ -53,26 +53,33 @@ const createOrder = async (req, res) => {
         return res.status(400).json(validationError);
     }
 
+    // Destructure and sanitize inputs
     const { userId, products, subtotal, total, shipping, order_status, payment_status } = req.body;
 
+    // Construct the order data safely
+    const orderData = {
+        userId: mongoose.Types.ObjectId(userId), // Sanitize userId to ObjectId
+        products: products.map(product => ({
+            productId: mongoose.Types.ObjectId(product.productId), // Assuming each product has an ID
+            quantity: product.quantity, // Ensure quantity is properly validated elsewhere
+            // You can add more sanitization/validation here for each product
+        })),
+        subtotal: parseFloat(subtotal), // Convert to number and ensure it's a valid value
+        total: parseFloat(total), // Convert to number and ensure it's a valid value
+        shipping: shipping ? shipping : undefined, // Optional field, use if provided
+        order_status: order_status, // Ensure this is validated if it's critical
+        payment_status: payment_status, // Ensure this is validated if it's critical
+    };
+
     try {
-        // Ensure the order object is sanitized and doesn't contain unexpected fields
-        const orderData = {
-            userId: mongoose.Types.ObjectId(userId), // Sanitize userId to ObjectId
-            products, // Validate products separately
-            subtotal: parseFloat(subtotal), // Convert to number
-            total: parseFloat(total), // Convert to number
-            shipping: shipping ? shipping : undefined, // Optional field
-            order_status,
-            payment_status,
-        };
-        const order = await Order.create(orderData);
+        const order = await Order.create(orderData); // Use sanitized and validated order data
         res.status(201).json(order); // Use 201 for created resource
     } catch (error) {
         console.error(error); // Log error for debugging
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
 
 // Delete order
 const deleteOrder = async (req, res) => {
