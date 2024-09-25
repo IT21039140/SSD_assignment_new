@@ -24,22 +24,27 @@ export default function CartPrice() {
         cart,
       })
       .then((res) => {
-        if (res.data.url && isValidUrl(res.data.url)) {
-          window.location.href = res.data.url;
+        const redirectUrl = res.data.url;
+        // Validate the URL before using it in window.location
+        if (redirectUrl && isValidRedirectUrl(redirectUrl)) {
+          window.location.href = redirectUrl;
         } else {
-          console.error("Invalid redirect URL");
+          console.error("Invalid or untrusted redirect URL.");
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => console.error("Error during checkout:", error));
   };
-
-  // Function to validate the URL against trusted domains
-  const isValidUrl = (url) => {
+  
+  // Function to validate if the URL is trusted
+  const isValidRedirectUrl = (url) => {
     try {
-      const trustedDomains = ["your-trusted-domain.com", "localhost"];
+      // Define trusted domains or patterns
+      const trustedDomains = ["your-trusted-domain.com", "localhost"]; // Update this list with your trusted domains
       const parsedUrl = new URL(url);
+      // Check if the parsed URL's domain is in the trusted list
       return trustedDomains.includes(parsedUrl.hostname);
     } catch (error) {
+      // If the URL parsing fails, consider it unsafe
       return false;
     }
   };
