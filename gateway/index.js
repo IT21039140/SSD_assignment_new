@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const proxy = require('express-http-proxy');
-require('dotenv').config();
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser'); // Import cookie parser
+const csrf = require('csurf'); // Import CSRF protection middleware
+require('dotenv').config();
 
 // Create an Express app
 const app = express();
@@ -19,7 +21,17 @@ const corsOptions = {
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser()); // Use cookie parser for handling cookies
 app.use(cors(corsOptions));
+
+// CSRF protection middleware
+const csrfProtection = csrf({ cookie: true });
+app.use(csrfProtection); // Enable CSRF protection
+
+// CSRF token endpoint
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() }); // Send CSRF token to the client
+});
 
 // Log incoming requests
 app.use((req, res, next) => {
