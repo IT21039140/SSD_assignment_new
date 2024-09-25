@@ -4,31 +4,37 @@ const Joi = require("joi");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
 
+const validator = require('validator');
+
 // Create a user
 const createUser = async (req, res) => {
   try {
-    const { error } = validate(req.body);
-    if (error)
-      return res.status(400).send({ message: error.details[0].message });
+    const { error } = validateUserCreation(req.body);
+    if (error) return res.status(400).send({ message: "Invalid input" }); // Generic error message
 
-    // Sanitize email input
-    const email = req.body.email.trim(); // Trimming spaces
+    // Sanitize and validate email input
+    const email = req.body.email.trim(); // Trim whitespace
+    if (!validator.isEmail(email)) {
+      return res.status(400).send({ message: "Invalid email format" }); // Validate email format
+    }
+    const sanitizedEmail = validator.normalizeEmail(email); // Normalize the email (e.g., lowercasing)
 
-    const user = await User.findOne({ email: email }); // Use sanitized input
-    if (user)
-      return res
-        .status(409)
-        .send({ message: "User with given email already exists!" });
+    const userExists = await User.findOne({ email: sanitizedEmail });
+    if (userExists) {
+      return res.status(409).send({ message: "User with given email already exists!" });
+    }
 
-    const salt = await bcrypt.genSalt(Number(process.env.SALT)); // Ensure SALT is defined in .env
-    const hashPassword = await bcrypt.hash(req.body.password, salt); // Hash the password
+    const salt = await bcrypt.genSalt(Number(process.env.SALT) || 10); // Default salt if not defined
+    const hashPassword = await bcrypt.hash(req.body.password, salt);
 
-    await new User({ ...req.body, password: hashPassword }).save();
+    await new User({ email: sanitizedEmail, password: hashPassword }).save(); // Save only validated and sanitized data
     res.status(201).send({ message: "User created successfully" });
   } catch (error) {
+    console.error(error); // Log error details
     res.status(500).send({ message: "Internal Server Error" });
   }
 };
+
 
 // Authenticate user
 const authenticateUser = async (req, res) => {
