@@ -75,18 +75,18 @@ const createOrder = async (req, res) => {
     const sanitizedSubtotal = sanitizeAmount(subtotal);
     const sanitizedTotal = sanitizeAmount(total);
 
-    // Create a new order object with sanitized data
+    // Construct a trusted and controlled orderData object with whitelisted fields
     const orderData = {
-      userId: sanitizedUserId,
-      products: sanitizedProducts,
-      subtotal: sanitizedSubtotal,
-      total: sanitizedTotal,
-      shipping: shipping || undefined, // Optional
-      order_status: order_status || undefined, // Optional
-      payment_status: payment_status || undefined, // Optional
+      userId: sanitizedUserId, // Sanitized ObjectId
+      products: sanitizedProducts, // Sanitized products array
+      subtotal: sanitizedSubtotal, // Sanitized float
+      total: sanitizedTotal, // Sanitized float
+      shipping: shipping || undefined, // Optional sanitized field
+      order_status: order_status || undefined, // Optional sanitized field
+      payment_status: payment_status || undefined, // Optional sanitized field
     };
 
-    // Create the order with sanitized data
+    // Pass sanitized orderData to create method
     const order = await Order.create(orderData);
     res.status(201).json(order); // Use 201 for created resource
   } catch (error) {
