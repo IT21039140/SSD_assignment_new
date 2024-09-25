@@ -1,5 +1,5 @@
-/*const Order=require('../models/OrdersModel')
-const mongoose=require('mongoose')
+const Order = require("../models/OrdersModel");
+const mongoose = require("mongoose");
 
 // Middleware for input validation and sanitization
 const validateOrderInput = (data) => {
@@ -136,142 +136,57 @@ const deleteOrder = async (req, res) => {
     return res.status(400).json({ error: "Invalid order ID" });
   }
 
-    const order=await Order.findOneAndDelete({_id:id})
-
-    if(!order){
-        return res.status(404).json({error:'no such oerder'})
+  try {
+    const order = await Order.findOneAndDelete({ _id: id });
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
     }
+    res.status(200).json(order);
+  } catch (error) {
+    console.error(error); // Log error for debugging
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
-    res.status(200).json(order)
-    
-}
-
-//update order
-const updateOrder= async(req,res)=>{
-    const {id}=req.params
-
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error:'no such id'})
-    }
-    const order =await Order.findOneAndUpdate({_id:id},{
-        ...req.body
-    })
-
-    if(!order){
-        return res.status(404).json({error:'no such oerder'})
-    }
-
-    res.status(200).json(order)
-}
-
-
-module.exports={
-    creatOrder,
-    getOrder,
-    getOrders,
-    deleteOrder,
-    updateOrder
-}*/
-
-const Order = require('../models/OrdersModel')
-const mongoose = require('mongoose')
-
-// get all orders
-const getOrders = async (req, res) => {
-    const orders = await Order.find({}).sort({ createAt: -1 })
-
-    res.status(200).json(orders)
-}
-
-// get a single order
-const getOrder = async (req, res) => {
-    const { id } = req.params
-
-    // Validate id to avoid NoSQL injection
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(404).json({ error: 'No such id' })
-    }
-
-    try {
-        // Sanitize query to prevent NoSQL injection
-        const order = await Order.findById(mongoose.Types.ObjectId(id)) // FIX: Use mongoose.Types.ObjectId(id) for parameterized query
-
-        if (!order) {
-            return res.status(404).json({ error: 'No such order' })
-        }
-
-        res.status(200).json(order)
-    } catch (error) {
-        res.status(500).json({ error: 'Server error' })
-    }
-}
-
-// add an order
-const creatOrder = async (req, res) => {
-    const { userId, products, subtotal, total, shipping, order_status, payment_status } = req.body
-
-    try {
-        const order = await Order.create({ userId, products, subtotal, total, shipping, order_status, payment_status })
-        res.status(200).json(order)
-    } catch (error) {
-        console.log(error)
-        res.status(400).json({ error: error.message })
-    }
-}
-
-// delete an order
-const deleteOrder = async (req, res) => {
-    const { id } = req.params
-
-    // Validate id to avoid NoSQL injection
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(404).json({ error: 'No such id' })
-    }
-
-    try {
-        // Sanitize query to prevent NoSQL injection
-        const order = await Order.findOneAndDelete({ _id: mongoose.Types.ObjectId(id) }) // FIX: Use mongoose.Types.ObjectId(id)
-
-        if (!order) {
-            return res.status(404).json({ error: 'No such order' })
-        }
-
-        res.status(200).json(order)
-    } catch (error) {
-        res.status(500).json({ error: 'Server error' })
-    }
-}
-
-// update an order
+// Update order
 const updateOrder = async (req, res) => {
-    const { id } = req.params
+  const { id } = req.params;
 
-    // Validate id to avoid NoSQL injection
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(404).json({ error: 'No such id' })
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "Invalid order ID" });
+  }
+
+  try {
+    const updateData = {};
+    // Only add fields to update if they are present in the request body
+    if (req.body.userId)
+      updateData.userId = mongoose.Types.ObjectId(req.body.userId);
+    if (req.body.products) updateData.products = req.body.products;
+    if (req.body.subtotal) updateData.subtotal = parseFloat(req.body.subtotal);
+    if (req.body.total) updateData.total = parseFloat(req.body.total);
+    if (req.body.shipping) updateData.shipping = req.body.shipping;
+    if (req.body.order_status) updateData.order_status = req.body.order_status;
+    if (req.body.payment_status)
+      updateData.payment_status = req.body.payment_status;
+
+    const order = await Order.findOneAndUpdate({ _id: id }, updateData, {
+      new: true,
+      runValidators: true,
+    });
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
     }
-
-    try {
-        // Sanitize query to prevent NoSQL injection
-        const order = await Order.findOneAndUpdate({ _id: mongoose.Types.ObjectId(id) }, {
-            ...req.body
-        }, { new: true }) // FIX: Use mongoose.Types.ObjectId(id)
-
-        if (!order) {
-            return res.status(404).json({ error: 'No such order' })
-        }
-
-        res.status(200).json(order)
-    } catch (error) {
-        res.status(500).json({ error: 'Server error' })
-    }
-}
+    res.status(200).json(order);
+  } catch (error) {
+    console.error(error); // Log error for debugging
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 module.exports = {
-    creatOrder,
-    getOrder,
-    getOrders,
-    deleteOrder,
-    updateOrder
-}
-
+  createOrder,
+  getOrder,
+  getOrders,
+  deleteOrder,
+  updateOrder,
+};
