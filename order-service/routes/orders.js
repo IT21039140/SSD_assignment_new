@@ -1,7 +1,7 @@
 const express=require('express')
 const router=express.Router()
 const {
-    creatOrder,
+    createOrder,
     getOrder,
     getOrders,
     deleteOrder,
@@ -16,7 +16,7 @@ router.get('/',getOrders)
 router.get('/:id',getOrder)
 
 //add a order
-router.post('/',creatOrder)
+router.post('/',createOrder)
 
 //delete a order
 router.delete('/:id',deleteOrder)
