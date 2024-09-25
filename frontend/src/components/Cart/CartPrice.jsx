@@ -24,11 +24,24 @@ export default function CartPrice() {
         cart,
       })
       .then((res) => {
-        if (res.data.url) {
+        if (res.data.url && isValidUrl(res.data.url)) {
           window.location.href = res.data.url;
+        } else {
+          console.error("Invalid redirect URL");
         }
       })
       .catch((error) => console.log(error));
+  };
+
+  // Function to validate the URL against trusted domains
+  const isValidUrl = (url) => {
+    try {
+      const trustedDomains = ["your-trusted-domain.com", "localhost"];
+      const parsedUrl = new URL(url);
+      return trustedDomains.includes(parsedUrl.hostname);
+    } catch (error) {
+      return false;
+    }
   };
 
   return (
@@ -45,7 +58,12 @@ export default function CartPrice() {
         </Button>
       ) : (
         <Button>
-          <Link to="/login" style={{textDecoration:"none",color:"white",width:"100%"}}>Login to process</Link>
+          <Link
+            to="/login"
+            style={{ textDecoration: "none", color: "white", width: "100%" }}
+          >
+            Login to process
+          </Link>
         </Button>
       )}
     </Col>
