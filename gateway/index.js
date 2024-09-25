@@ -2,10 +2,11 @@ const express=require('express');
 const cors = require('cors');
 const proxy = require('express-http-proxy');
 require('dotenv').config();
-
+const helmet = require("helmet");
 //express app
 const app=express()
-
+// Use Helmet middleware to secure your app
+app.use(helmet());
 const issue2options = {
   origin: true,
   credentials: true,
