@@ -1,19 +1,23 @@
 const Order = require('../models/OrdersModel');
 const mongoose = require('mongoose');
 
-// Middleware for input validation
+// Middleware for input validation and sanitization
 const validateOrderInput = (data) => {
+    const errors = {};
     // Check for required fields in the order input
-    if (!data.userId || !data.products) {
-        return { error: 'userId and products are required fields.' };
+    if (!data.userId) {
+        errors.userId = 'userId is a required field.';
     }
-    return null;
+    if (!data.products || !Array.isArray(data.products) || data.products.length === 0) {
+        errors.products = 'products must be a non-empty array.';
+    }
+    return Object.keys(errors).length > 0 ? { error: errors } : null;
 };
 
 // Get all orders
 const getOrders = async (req, res) => {
     try {
-        const orders = await Order.find({}).sort({ createAt: -1 });
+        const orders = await Order.find({}).sort({ createdAt: -1 }); // Ensure the field is correctly spelled
         res.status(200).json(orders);
     } catch (error) {
         console.error(error); // Log error for debugging
@@ -30,7 +34,7 @@ const getOrder = async (req, res) => {
     }
 
     try {
-        const order = await Order.findById(id);
+        const order = await Order.findById(id).select('-__v'); // Exclude version key for security
         if (!order) {
             return res.status(404).json({ error: 'Order not found' });
         }
@@ -50,8 +54,19 @@ const createOrder = async (req, res) => {
     }
 
     const { userId, products, subtotal, total, shipping, order_status, payment_status } = req.body;
+
     try {
-        const order = await Order.create({ userId, products, subtotal, total, shipping, order_status, payment_status });
+        // Ensure the order object is sanitized and doesn't contain unexpected fields
+        const orderData = {
+            userId: mongoose.Types.ObjectId(userId), // Sanitize userId to ObjectId
+            products, // Validate products separately
+            subtotal: parseFloat(subtotal), // Convert to number
+            total: parseFloat(total), // Convert to number
+            shipping: shipping ? shipping : undefined, // Optional field
+            order_status,
+            payment_status,
+        };
+        const order = await Order.create(orderData);
         res.status(201).json(order); // Use 201 for created resource
     } catch (error) {
         console.error(error); // Log error for debugging
@@ -88,7 +103,17 @@ const updateOrder = async (req, res) => {
     }
 
     try {
-        const order = await Order.findOneAndUpdate({ _id: id }, req.body, { new: true });
+        const updateData = {};
+        // Only add fields to update if they are present in the request body
+        if (req.body.userId) updateData.userId = mongoose.Types.ObjectId(req.body.userId);
+        if (req.body.products) updateData.products = req.body.products;
+        if (req.body.subtotal) updateData.subtotal = parseFloat(req.body.subtotal);
+        if (req.body.total) updateData.total = parseFloat(req.body.total);
+        if (req.body.shipping) updateData.shipping = req.body.shipping;
+        if (req.body.order_status) updateData.order_status = req.body.order_status;
+        if (req.body.payment_status) updateData.payment_status = req.body.payment_status;
+
+        const order = await Order.findOneAndUpdate({ _id: id }, updateData, { new: true, runValidators: true });
         if (!order) {
             return res.status(404).json({ error: 'Order not found' });
         }
@@ -100,7 +125,7 @@ const updateOrder = async (req, res) => {
 };
 
 module.exports = {
-    createOrder, // Fixed function name
+    createOrder,
     getOrder,
     getOrders,
     deleteOrder,
