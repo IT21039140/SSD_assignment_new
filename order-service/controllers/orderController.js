@@ -1,14 +1,31 @@
-const Order = require('../models/OrdersModel');
-const mongoose = require('mongoose');
+const Order = require("../models/OrdersModel");
+const mongoose = require("mongoose");
+
+// Middleware for input validation and sanitization
+const validateOrderInput = (data) => {
+  const errors = {};
+  // Check for required fields in the order input
+  if (!data.userId) {
+    errors.userId = "userId is a required field.";
+  }
+  if (
+    !data.products ||
+    !Array.isArray(data.products) ||
+    data.products.length === 0
+  ) {
+    errors.products = "products must be a non-empty array.";
+  }
+  return Object.keys(errors).length > 0 ? { error: errors } : null;
+};
 
 // Get all orders
 const getOrders = async (req, res) => {
   try {
-    const orders = await Order.find({}).sort({ createAt: -1 });
+    const orders = await Order.find({}).sort({ createdAt: -1 }); // Ensure the field is correctly spelled
     res.status(200).json(orders);
   } catch (error) {
-    console.error('Error fetching orders:', error); // Safe logging
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(error); // Log error for debugging
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -17,114 +34,152 @@ const getOrder = async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid order ID' });
+    return res.status(400).json({ error: "Invalid order ID" });
   }
 
   try {
-    const order = await Order.findById(id);
-
+    const order = await Order.findById(id).select("-__v"); // Exclude version key for security
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
-
     res.status(200).json(order);
   } catch (error) {
-    console.error('Error fetching order:', error); // Safe logging
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(error); // Log error for debugging
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
 // Create an order
 const createOrder = async (req, res) => {
-  const { userId, products, subtotal, total, shipping, order_status, payment_status } = req.body;
-
-  // Validate required fields
-  if (!userId || !Array.isArray(products) || products.length === 0 || !subtotal || !total) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  // Validate input
+  const validationError = validateOrderInput(req.body);
+  if (validationError) {
+    return res.status(400).json(validationError);
   }
 
-  try {
-    const sanitizedUserId = mongoose.Types.ObjectId(userId);
-    const sanitizedProducts = products.map((product) => ({
-      productId: mongoose.Types.ObjectId(product.productId),
-      quantity: parseInt(product.quantity, 10),
-    }));
+  // Destructure the request body
+  const {
+    userId,
+    products,
+    subtotal,
+    total,
+    shipping,
+    order_status,
+    payment_status,
+  } = req.body;
 
+  try {
+    // Sanitize and prepare the data
+    const sanitizedUserId = sanitizeUserId(userId);
+    const sanitizedProducts = sanitizeProducts(products);
+    const sanitizedSubtotal = sanitizeAmount(subtotal);
+    const sanitizedTotal = sanitizeAmount(total);
+
+    // Construct a trusted and controlled orderData object with whitelisted fields
     const orderData = {
-      userId: sanitizedUserId,
-      products: sanitizedProducts,
-      subtotal: parseFloat(subtotal),
-      total: parseFloat(total),
-      shipping: shipping || undefined,
-      order_status: order_status || undefined,
-      payment_status: payment_status || undefined,
+      userId: sanitizedUserId, // Sanitized ObjectId
+      products: sanitizedProducts, // Sanitized products array
+      subtotal: sanitizedSubtotal, // Sanitized float
+      total: sanitizedTotal, // Sanitized float
+      shipping: shipping || undefined, // Optional sanitized field
+      order_status: order_status || undefined, // Optional sanitized field
+      payment_status: payment_status || undefined, // Optional sanitized field
     };
 
+    // Pass sanitized orderData to create method
     const order = await Order.create(orderData);
-    res.status(201).json(order); // 201 for resource creation
+    res.status(201).json(order); // Use 201 for created resource
   } catch (error) {
-    console.error('Error creating order:', error); // Safe logging
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(error); // Log error for debugging
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// Delete an order
+// Function to sanitize userId
+const sanitizeUserId = (userId) => {
+  if (mongoose.Types.ObjectId.isValid(userId)) {
+    return mongoose.Types.ObjectId(userId); // Convert to ObjectId if valid
+  }
+  throw new Error("Invalid userId");
+};
+
+// Function to sanitize products
+const sanitizeProducts = (products) => {
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new Error("products must be a non-empty array");
+  }
+
+  return products.map((product) => {
+    if (!mongoose.Types.ObjectId.isValid(product.productId)) {
+      throw new Error("Invalid productId in products array");
+    }
+    return {
+      productId: mongoose.Types.ObjectId(product.productId), // Sanitize productId to ObjectId
+      quantity: parseInt(product.quantity, 10) || 1, // Ensure quantity is a number
+    };
+  });
+};
+
+// Function to sanitize subtotal and total
+const sanitizeAmount = (amount) => {
+  if (typeof amount === "number" && amount >= 0) {
+    return parseFloat(amount); // Convert to float
+  }
+  throw new Error("Invalid amount");
+};
+
+// Delete order
 const deleteOrder = async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid order ID' });
+    return res.status(400).json({ error: "Invalid order ID" });
   }
 
   try {
     const order = await Order.findOneAndDelete({ _id: id });
-
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
-
     res.status(200).json(order);
   } catch (error) {
-    console.error('Error deleting order:', error); // Safe logging
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(error); // Log error for debugging
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// Update an order
+// Update order
 const updateOrder = async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid order ID' });
+    return res.status(400).json({ error: "Invalid order ID" });
   }
-
-  // Whitelist fields that can be updated
-  const { products, subtotal, total, shipping, order_status, payment_status } = req.body;
-  const updateData = {};
-
-  if (products && Array.isArray(products)) {
-    updateData.products = products.map((product) => ({
-      productId: mongoose.Types.ObjectId(product.productId),
-      quantity: parseInt(product.quantity, 10),
-    }));
-  }
-  if (subtotal !== undefined) updateData.subtotal = parseFloat(subtotal);
-  if (total !== undefined) updateData.total = parseFloat(total);
-  if (shipping !== undefined) updateData.shipping = shipping;
-  if (order_status !== undefined) updateData.order_status = order_status;
-  if (payment_status !== undefined) updateData.payment_status = payment_status;
 
   try {
-    const order = await Order.findOneAndUpdate({ _id: id }, updateData, { new: true });
+    const updateData = {};
+    // Only add fields to update if they are present in the request body
+    if (req.body.userId)
+      updateData.userId = mongoose.Types.ObjectId(req.body.userId);
+    if (req.body.products) updateData.products = req.body.products;
+    if (req.body.subtotal) updateData.subtotal = parseFloat(req.body.subtotal);
+    if (req.body.total) updateData.total = parseFloat(req.body.total);
+    if (req.body.shipping) updateData.shipping = req.body.shipping;
+    if (req.body.order_status) updateData.order_status = req.body.order_status;
+    if (req.body.payment_status)
+      updateData.payment_status = req.body.payment_status;
 
+    const order = await Order.findOneAndUpdate({ _id: id }, updateData, {
+      new: true,
+      runValidators: true,
+    });
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
-
     res.status(200).json(order);
   } catch (error) {
-    console.error('Error updating order:', error); // Safe logging
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(error); // Log error for debugging
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
