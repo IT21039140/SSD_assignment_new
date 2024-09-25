@@ -44,6 +44,7 @@ function App() {
             </Route>
             <Route element={<AuthLayout allowedR={"seller"} />}>
               <Route path="/seller/dashboard" element={<SellerDashboard />} />
+              <Route path="/seller/profile" element={<SellerDashboard />} />
               <Route path="/seller/products" element={<SellerProducts />} />
               <Route path="/seller/UpdateProductModal/:id" element={<UpdateProductModal/>} />
               

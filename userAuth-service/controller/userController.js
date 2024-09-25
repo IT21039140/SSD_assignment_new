@@ -5,16 +5,24 @@ const bcrypt = require("bcrypt");
 require("dotenv").config();
 
 const validator = require("validator");
-
+// Define validateUserCreation function for user input validation
+const validateUserCreation = (data) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required().label("Email"),
+    password: Joi.string().min(6).required().label("Password"), // Minimum length for password
+  });
+  return schema.validate(data);
+};
 // Create a user
 const createUser = async (req, res) => {
   try {
-    // Validate user input structure and types
-    const { error } = validateUserCreation(req.body);
-    if (error) return res.status(400).send({ message: "Invalid input" }); // Generic error message
+    const { error } = validate(req.body);
+    if (error)
+      return res.status(400).send({ message: error.details[0].message });
+
 
     // Check for the expected properties in req.body
-    const { email, password } = req.body;
+    const { name,email, password ,type} = req.body;
 
     // Ensure email and password are of the correct type
     if (typeof email !== "string" || typeof password !== "string") {
@@ -42,7 +50,7 @@ const createUser = async (req, res) => {
     const hashPassword = await bcrypt.hash(password, salt);
 
     // Save only validated and sanitized data
-    const newUser = new User({ email: sanitizedEmail, password: hashPassword });
+    const newUser = new User({ name,email: sanitizedEmail, password: hashPassword ,type});
     await newUser.save();
     res.status(201).send({ message: "User created successfully" });
   } catch (error) {
