@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
-
+const helmet = require("helmet");
 
 const userRouter = require("./routes/userRouter");
 
@@ -10,26 +10,19 @@ const issue2options = {
   origin: true,
   methods: ["POST"],
   credentials: true,
-  maxAge: 3600
+  maxAge: 3600,
 };
-
 
 //middleware
 dotenv.config();
 const app = express();
+// Use Helmet middleware to secure your app
+app.use(helmet());
 app.use(express.json());
-app.use(cors(
-  issue2options
-));
-
-
-
-
-
+app.use(cors(issue2options));
 
 //routes
-app.use("/api/users",userRouter);
-
+app.use("/api/users", userRouter);
 
 const PORT = process.env.PORT || 5005;
 
