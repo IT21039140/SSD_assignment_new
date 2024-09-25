@@ -9,15 +9,26 @@ const validator = require("validator");
 // Create a user
 const createUser = async (req, res) => {
   try {
+    // Validate user input structure and types
     const { error } = validateUserCreation(req.body);
     if (error) return res.status(400).send({ message: "Invalid input" }); // Generic error message
 
+    // Check for the expected properties in req.body
+    const { email, password } = req.body;
+
+    // Ensure email and password are of the correct type
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res
+        .status(400)
+        .send({ message: "Email and password must be strings." });
+    }
+
     // Sanitize and validate email input
-    const email = req.body.email.trim(); // Trim whitespace
-    if (!validator.isEmail(email)) {
+    const trimmedEmail = email.trim(); // Trim whitespace
+    if (!validator.isEmail(trimmedEmail)) {
       return res.status(400).send({ message: "Invalid email format" }); // Validate email format
     }
-    const sanitizedEmail = validator.normalizeEmail(email); // Normalize the email (e.g., lowercasing)
+    const sanitizedEmail = validator.normalizeEmail(trimmedEmail); // Normalize the email (e.g., lowercasing)
 
     const userExists = await User.findOne({ email: sanitizedEmail });
     if (userExists) {
@@ -26,10 +37,13 @@ const createUser = async (req, res) => {
         .send({ message: "User with given email already exists!" });
     }
 
+    // Hash the password
     const salt = await bcrypt.genSalt(Number(process.env.SALT) || 10); // Default salt if not defined
-    const hashPassword = await bcrypt.hash(req.body.password, salt);
+    const hashPassword = await bcrypt.hash(password, salt);
 
-    await new User({ email: sanitizedEmail, password: hashPassword }).save(); // Save only validated and sanitized data
+    // Save only validated and sanitized data
+    const newUser = new User({ email: sanitizedEmail, password: hashPassword });
+    await newUser.save();
     res.status(201).send({ message: "User created successfully" });
   } catch (error) {
     console.error(error); // Log error details
@@ -44,7 +58,7 @@ const authenticateUser = async (req, res) => {
     if (error) return res.status(400).send({ message: "Invalid input" }); // Generic error message
 
     // Sanitize and validate email input
-    const email = req.body.email.trim(); // Trim whitespace
+    const email = req.body.email; // Trim whitespace
     if (!validator.isEmail(email)) {
       return res.status(400).send({ message: "Invalid email format" }); // Validate email format
     }
