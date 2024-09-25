@@ -4,7 +4,7 @@ const Joi = require("joi");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
 
-const validator = require('validator');
+const validator = require("validator");
 
 // Create a user
 const createUser = async (req, res) => {
@@ -21,7 +21,9 @@ const createUser = async (req, res) => {
 
     const userExists = await User.findOne({ email: sanitizedEmail });
     if (userExists) {
-      return res.status(409).send({ message: "User with given email already exists!" });
+      return res
+        .status(409)
+        .send({ message: "User with given email already exists!" });
     }
 
     const salt = await bcrypt.genSalt(Number(process.env.SALT) || 10); // Default salt if not defined
@@ -35,16 +37,20 @@ const createUser = async (req, res) => {
   }
 };
 
-
 // Authenticate user
 const authenticateUser = async (req, res) => {
   try {
     const { error } = validateAuth(req.body);
-    if (error)
-      return res.status(400).send({ message: error.details[0].message });
+    if (error) return res.status(400).send({ message: "Invalid input" }); // Generic error message
 
-    const email = req.body.email.trim(); // Sanitize email input
-    const user = await User.findOne({ email: email }); // Use sanitized input
+    // Sanitize and validate email input
+    const email = req.body.email.trim(); // Trim whitespace
+    if (!validator.isEmail(email)) {
+      return res.status(400).send({ message: "Invalid email format" }); // Validate email format
+    }
+    const sanitizedEmail = validator.normalizeEmail(email); // Normalize the email
+
+    const user = await User.findOne({ email: sanitizedEmail }); // Use sanitized input
     if (!user)
       return res.status(401).send({ message: "Invalid Email or Password" });
 
@@ -75,7 +81,7 @@ const authenticateUser = async (req, res) => {
     res.cookie("jwt", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Ensure cookie is secure in production
-      sameSite: "None", // cross-site cookie
+      sameSite: "None", // Cross-site cookie
     });
 
     res.status(200).send({
@@ -84,10 +90,12 @@ const authenticateUser = async (req, res) => {
       message: "Login is successful",
     });
   } catch (error) {
+    console.error(error); // Log error details for debugging
     res.status(500).send({ message: "Internal Server Error" });
   }
 };
 
+// Refresh token
 // Refresh token
 const refresh = (req, res) => {
   const cookies = req.cookies;
@@ -101,7 +109,8 @@ const refresh = (req, res) => {
     async (err, decoded) => {
       if (err) return res.status(403).json({ message: "Forbidden" });
 
-      const foundUser = await User.findOne({ email: decoded.username }).exec();
+      const sanitizedUsername = validator.normalizeEmail(decoded.username); // Normalize the email for consistency
+      const foundUser = await User.findOne({ email: sanitizedUsername }).exec(); // Use sanitized email
       if (!foundUser)
         return res.status(401).json({ message: "Unauthorized user" });
 
