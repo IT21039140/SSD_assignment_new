@@ -2,14 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const app = express();
-
+const helmet = require("helmet");
 const stripe = require('./routes/checkoutRoute');
 const connection = require('./dbconnection/dbconnection');
 
 
 
 dotenv.config();
-
+// Use Helmet middleware to secure your app
+app.use(helmet());
 app.use(express.json());
 app.use(cors());
 

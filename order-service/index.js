@@ -6,7 +6,9 @@ const orderRoutes=require('./routes/orders');
 
 //express app
 const app=express()
-
+const helmet = require("helmet");
+// Use Helmet middleware to secure your app
+app.use(helmet());
 //middle ware
 app.use(express.json())
 app.use(cors());

@@ -4,10 +4,11 @@ const express = require("express");
 const cors = require("cors");
 const productsRout = require("./routes/products");
 const connection = require('./dbconnection/dbconnection');
-
+const helmet = require("helmet");
 //express app
 const app = express();
-
+// Use Helmet middleware to secure your app
+app.use(helmet());
 //midleware
 app.use(express.json());
 app.use(cors());
