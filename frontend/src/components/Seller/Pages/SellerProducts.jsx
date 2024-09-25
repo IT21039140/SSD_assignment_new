@@ -8,6 +8,7 @@ import UpdateProductModal from "../../../components/Seller/Components/SellerProd
 import axios from "axios";
 import { Link } from "react-router-dom";
 import swal from "sweetalert";
+import DOMPurify from "dompurify";
 
 const SellerProducts = () => {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -20,6 +21,12 @@ const SellerProducts = () => {
   const handleUpdateProductModalShow = () => setShowUpdateProductModal(true);
 
   const [product, setProduct] = useState([]);
+  const isValidImageUrl = (url) => {
+    const pattern = new RegExp(
+      "^(https?:\\/\\/.*\\.(?:png|jpg|jpeg|gif|webp))$"
+    );
+    return pattern.test(url);
+  };
 
   function deleteProduct(id) {
     swal({
@@ -57,10 +64,10 @@ const SellerProducts = () => {
 
       .then((res) => {
         //const filteredProducts = res.data.filter((products) => {
-         // return products.sellerId === getSellerId;
-         setProduct(res.data);
-        })
-       
+        // return products.sellerId === getSellerId;
+        setProduct(res.data);
+      })
+
       //})
       .catch((err) => {
         alert(err.message);
@@ -83,8 +90,6 @@ const SellerProducts = () => {
           backgroundPosition: "center",
         }}
       >
-        
-
         <div className="content">
           <button
             className="btn btnProduct"
@@ -104,42 +109,40 @@ const SellerProducts = () => {
             handleClose={handleUpdateProductModalClose}
           />
 
-          <div class="container bg-white">
-            <div class="row">
+          <div className="container bg-white">
+            <div className="row">
               {product.map((product) => (
-                <div class="col-lg-3 col-sm-6 d-flex flex-column align-items-center justify-content-center product-i my-3">
-                  <div class="product">
-                    {/* <div className="productImg"> */}
+                <div
+                  className="col-lg-3 col-sm-6 d-flex flex-column align-items-center justify-content-center product-i my-3"
+                  key={product._id}
+                >
+                  <div className="product">
                     <img
-                      src={product.image}
+                      src={
+                        isValidImageUrl(product.image)
+                          ? DOMPurify.sanitize(product.image)
+                          : "default-image-url.jpg"
+                      }
                       alt={product.name}
-                      // style={{ height: 'fit-content' }}
                     />
-                    {/* </div> */}
-                    <ul class="d-flex align-items-center justify-content-center list-unstyled icons">
-                      <Link
-                        to={"/seller/UpdateProductModal/" + product._id}
-                      >
-                        <li class="icon " id="edit">
-                          <span class="bi bi-pen"></span>
+                    <ul className="d-flex align-items-center justify-content-center list-unstyled icons">
+                      <Link to={"/seller/UpdateProductModal/" + product._id}>
+                        <li className="icon" id="edit">
+                          <span className="bi bi-pen"></span>
                         </li>
                       </Link>
-
                       <li
-                        class="icon mx-3"
-                        onClick={() => deleteProduct(product._id)}
+                        className="icon mx-3"
+                        onClick={() =>deleteProduct(product._id)}
                       >
-                        <span class="bi bi-trash"></span>
+                        <span className="bi bi-trash"></span>
                       </li>
                     </ul>
                   </div>
-                  <div class="tag bg-red">{product.category}</div>
-                  <span class="tag1 bg-green">{product.quantity}</span>
-                  <div class="title pt-4 pb-1">{product.name}</div>
-                  {/* <div class="d-flex align-content-center justify-content-center">
-                    <p>{product.description}</p>
-                  </div> */}
-                  <div class="price">Rs. {product.price}</div>
+                  <div className="tag bg-red">{product.category}</div>
+                  <span className="tag1 bg-green">{product.quantity}</span>
+                  <div className="title pt-4 pb-1">{product.name}</div>
+                  <div className="price">Rs. {product.price}</div>
                 </div>
               ))}
             </div>
