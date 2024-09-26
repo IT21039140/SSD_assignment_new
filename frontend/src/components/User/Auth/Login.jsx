@@ -1,19 +1,32 @@
 import "./styles.css";
-import { useState } from "react";
-import {axiosPrivate} from "../../../api/axios";
+import { useState, useEffect } from "react";
+import { axiosPrivate } from "../../../api/axios";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import { Container, Row, Col } from "react-bootstrap";
-import { useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../../../hooks/useAuth";
 
 const Login = () => {
   const [data, setData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [csrfToken, setCsrfToken] = useState(""); // State to hold the CSRF token
   const navigate = useNavigate();
-  // const location = useLocation();
-  // const from = location.state?.from?.pathname || "/";
-  const {setAuth} = useAuth();
+  const { setAuth } = useAuth();
+
+  // Fetch CSRF token on component mount
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axiosPrivate.get("/api/csrf-token"); // Adjust according to your axios instance
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error("Error fetching CSRF token:", error);
+      }
+    };
+
+    fetchCsrfToken();
+  }, []);
 
   const handleChange = ({ currentTarget: input }) => {
     setData({ ...data, [input.name]: input.value });
@@ -23,13 +36,19 @@ const Login = () => {
     e.preventDefault();
     try {
       const url = "/api/users/login";
-      const { data: res } = await axiosPrivate.post(url, data);
-      // console.log(res);
-      // localStorage.setItem("token", res.);
-      setAuth({userdata : res.data, role : res.data.type, accessToken: res.accesstoken})
+      const { data: res } = await axiosPrivate.post(url, data, {
+        headers: {
+          "CSRF-Token": csrfToken, // Include the CSRF token in the headers
+        },
+      });
+      
+      setAuth({
+        userdata: res.data,
+        role: res.data.type,
+        accessToken: res.accesstoken,
+      });
 
       // Redirect based on user type
-      console.log(res.data.type)
       switch (res.data.type) {
         case "admin":
           navigate("/admin", { replace: true });
@@ -41,17 +60,17 @@ const Login = () => {
           navigate("/seller/profile", { replace: true });
           break;
         default:
-          // Consider a default case if `type` might not be any of the expected values
-          navigate("/", { replace: true }); // navigate to a default route if user type is unknown
+          navigate("/", { replace: true }); // Navigate to a default route if user type is unknown
           break;
       }
-
-  } catch (error) {
-    console.log(error);
-    if (error.response && error.response.status >= 400 && error.response.status <= 500) {
-      setError(error.response.data.message);
+    } catch (error) {
+      console.log(error);
+      if (error.response && error.response.status >= 400 && error.response.status <= 500) {
+        setError(error.response.data.message);
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
     }
-  }
   };
 
   return (
@@ -60,7 +79,7 @@ const Login = () => {
         <Col className="from-container">
           <Form className="frmlogin" onSubmit={handleSubmit}>
             <h2>Login</h2>
-            <br></br>
+            <br />
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <Form.Label>Email</Form.Label>
               <Form.Control
@@ -86,7 +105,7 @@ const Login = () => {
               />
             </Form.Group>
             {error && <div className="error">{error}</div>}
-            <br></br>
+            <br />
             <div className="btn-container">
               <Button className="btnsign" variant="primary" type="submit">
                 Submit
@@ -106,4 +125,5 @@ const Login = () => {
     </Container>
   );
 };
+
 export default Login;

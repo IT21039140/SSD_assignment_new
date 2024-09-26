@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const helmet = require("helmet");
-const csrf = require("csurf"); // Import CSRF protection middleware
-const cookieParser = require("cookie-parser"); // For handling cookies
+const csrf = require("csurf");
+const cookieParser = require("cookie-parser");
 
 const userRouter = require("./routes/userRouter");
 
@@ -15,19 +15,22 @@ const app = express();
 // Middleware for security
 app.use(helmet());
 app.use(express.json());
-app.use(cookieParser()); // Use cookie parser for CSRF token handling
-app.use(cors({
-  origin: true, // Set specific origins in production
-  methods: ["POST"],
-  credentials: true,
-  maxAge: 3600,
-}));
+app.use(cookieParser()); // Use cookie parser before CSRF middleware
 
-// CSRF protection
+// CORS configuration to allow credentials and specific origins
+app.use(
+  cors({
+    origin: "http://localhost:3000", // Replace with your frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE"], // Include necessary methods
+    credentials: true, // Allow credentials to be included in requests
+  })
+);
+
+// CSRF protection setup
 const csrfProtection = csrf({ cookie: true });
 app.use(csrfProtection);
 
-// CSRF token endpoint for client-side use
+// Endpoint to provide the CSRF token to the client
 app.get("/api/csrf-token", (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
@@ -37,14 +40,17 @@ app.use("/api/users", userRouter);
 
 // Connect to MongoDB
 const PORT = process.env.PORT || 5005;
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true, // Add this option for better connection management
-}).then(() => {
-  console.log("MongoDB connected successfully");
-}).catch((error) => {
-  console.error("MongoDB connection error:", error);
-});
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("MongoDB connected successfully");
+  })
+  .catch((error) => {
+    console.error("MongoDB connection error:", error);
+  });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
