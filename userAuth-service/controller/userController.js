@@ -18,7 +18,8 @@ const validateUserCreation = (data) => {
 const createUser = async (req, res) => {
   try {
     const { error } = validate(req.body);
-    if (error) return res.status(400).send({ message: error.details[0].message });
+    if (error)
+      return res.status(400).send({ message: error.details[0].message });
 
     const { name, email, password, type } = req.body;
 
@@ -38,7 +39,12 @@ const createUser = async (req, res) => {
     const salt = await bcrypt.genSalt(Number(process.env.SALT) || 10);
     const hashPassword = await bcrypt.hash(password, salt);
 
-    const newUser = new User({ name, email: sanitizedEmail, password: hashPassword, type });
+    const newUser = new User({
+      name,
+      email: sanitizedEmail,
+      password: hashPassword,
+      type,
+    });
     await newUser.save();
     res.status(201).send({ message: "User created successfully" });
   } catch (error) {
@@ -60,10 +66,12 @@ const authenticateUser = async (req, res) => {
     const sanitizedEmail = validator.normalizeEmail(email);
 
     const user = await User.findOne({ email: sanitizedEmail });
-    if (!user) return res.status(401).send({ message: "Invalid Email or Password" });
+    if (!user)
+      return res.status(401).send({ message: "Invalid Email or Password" });
 
     const isMatch = await bcrypt.compare(req.body.password, user.password);
-    if (!isMatch) return res.status(401).send({ message: "Invalid Email or Password" });
+    if (!isMatch)
+      return res.status(401).send({ message: "Invalid Email or Password" });
 
     const accessToken = jwt.sign(
       {
@@ -114,7 +122,8 @@ const refresh = (req, res) => {
 
       const sanitizedUsername = validator.normalizeEmail(decoded.username);
       const foundUser = await User.findOne({ email: sanitizedUsername }).exec();
-      if (!foundUser) return res.status(401).json({ message: "Unauthorized user" });
+      if (!foundUser)
+        return res.status(401).json({ message: "Unauthorized user" });
 
       const accessToken = jwt.sign(
         {
@@ -135,9 +144,16 @@ const refresh = (req, res) => {
 // Logout
 const logout = (req, res) => {
   const cookies = req.cookies;
-  if (!cookies?.jwt) return res.sendStatus(204);
+  if (!cookies?.jwt) return res.sendStatus(204); // No content if no cookie
+
+  // Clear the JWT cookie
   res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
-  res.json({ message: "Cookie cleared" });
+
+  // Handle Google logout if there's any session
+  // Example: If you're storing Google user info in a session
+  req.session = null; // or delete req.session if using express-session
+
+  res.json({ message: "Successfully logged out." });
 };
 
 // Validate user authentication data
