@@ -2,41 +2,31 @@ const { User, validate } = require("../models/user");
 const jwt = require("jsonwebtoken");
 const Joi = require("joi");
 const bcrypt = require("bcrypt");
+const validator = require("validator");
 require("dotenv").config();
 
-const validator = require("validator");
-// Define validateUserCreation function for user input validation
+// Validate user creation data
 const validateUserCreation = (data) => {
   const schema = Joi.object({
     email: Joi.string().email().required().label("Email"),
-    password: Joi.string().min(6).required().label("Password"), // Minimum length for password
+    password: Joi.string().min(6).required().label("Password"),
   });
   return schema.validate(data);
 };
+
 // Create a user
 const createUser = async (req, res) => {
   try {
     const { error } = validate(req.body);
-    if (error)
-      return res.status(400).send({ message: error.details[0].message });
+    if (error) return res.status(400).send({ message: error.details[0].message });
 
+    const { name, email, password, type } = req.body;
 
-    // Check for the expected properties in req.body
-    const { name,email, password ,type} = req.body;
-
-    // Ensure email and password are of the correct type
-    if (typeof email !== "string" || typeof password !== "string") {
-      return res
-        .status(400)
-        .send({ message: "Email and password must be strings." });
-    }
-
-    // Sanitize and validate email input
-    const trimmedEmail = email.trim(); // Trim whitespace
+    const trimmedEmail = email.trim();
     if (!validator.isEmail(trimmedEmail)) {
-      return res.status(400).send({ message: "Invalid email format" }); // Validate email format
+      return res.status(400).send({ message: "Invalid email format" });
     }
-    const sanitizedEmail = validator.normalizeEmail(trimmedEmail); // Normalize the email (e.g., lowercasing)
+    const sanitizedEmail = validator.normalizeEmail(trimmedEmail);
 
     const userExists = await User.findOne({ email: sanitizedEmail });
     if (userExists) {
@@ -45,16 +35,14 @@ const createUser = async (req, res) => {
         .send({ message: "User with given email already exists!" });
     }
 
-    // Hash the password
-    const salt = await bcrypt.genSalt(Number(process.env.SALT) || 10); // Default salt if not defined
+    const salt = await bcrypt.genSalt(Number(process.env.SALT) || 10);
     const hashPassword = await bcrypt.hash(password, salt);
 
-    // Save only validated and sanitized data
-    const newUser = new User({ name,email: sanitizedEmail, password: hashPassword ,type});
+    const newUser = new User({ name, email: sanitizedEmail, password: hashPassword, type });
     await newUser.save();
     res.status(201).send({ message: "User created successfully" });
   } catch (error) {
-    console.error(error); // Log error details
+    console.error(error);
     res.status(500).send({ message: "Internal Server Error" });
   }
 };
@@ -63,23 +51,19 @@ const createUser = async (req, res) => {
 const authenticateUser = async (req, res) => {
   try {
     const { error } = validateAuth(req.body);
-    if (error) return res.status(400).send({ message: "Invalid input" }); // Generic error message
+    if (error) return res.status(400).send({ message: "Invalid input" });
 
-    // Sanitize and validate email input
-    const email = req.body.email; // Trim whitespace
+    const email = req.body.email;
     if (!validator.isEmail(email)) {
-      return res.status(400).send({ message: "Invalid email format" }); // Validate email format
+      return res.status(400).send({ message: "Invalid email format" });
     }
-    const sanitizedEmail = validator.normalizeEmail(email); // Normalize the email
+    const sanitizedEmail = validator.normalizeEmail(email);
 
-    const user = await User.findOne({ email: sanitizedEmail }); // Use sanitized input
-    if (!user)
-      return res.status(401).send({ message: "Invalid Email or Password" });
+    const user = await User.findOne({ email: sanitizedEmail });
+    if (!user) return res.status(401).send({ message: "Invalid Email or Password" });
 
-    // Use bcrypt to compare hashed passwords
     const isMatch = await bcrypt.compare(req.body.password, user.password);
-    if (!isMatch)
-      return res.status(401).send({ message: "Invalid Email or Password" });
+    if (!isMatch) return res.status(401).send({ message: "Invalid Email or Password" });
 
     const accessToken = jwt.sign(
       {
@@ -88,22 +72,20 @@ const authenticateUser = async (req, res) => {
           roles: user.type,
         },
       },
-      process.env.ACCESS_TOKEN_SECRET, // Use an environment variable for the secret
+      process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "15m" }
     );
 
     const refreshToken = jwt.sign(
       { username: user.email },
       process.env.REFRESH_TOKEN_SECRET,
-      {
-        expiresIn: "7d",
-      }
+      { expiresIn: "7d" }
     );
 
     res.cookie("jwt", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Ensure cookie is secure in production
-      sameSite: "None", // Cross-site cookie
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "None",
     });
 
     res.status(200).send({
@@ -112,16 +94,15 @@ const authenticateUser = async (req, res) => {
       message: "Login is successful",
     });
   } catch (error) {
-    console.error(error); // Log error details for debugging
+    console.error(error);
     res.status(500).send({ message: "Internal Server Error" });
   }
 };
 
 // Refresh token
-// Refresh token
 const refresh = (req, res) => {
   const cookies = req.cookies;
-  if (!cookies?.jwt) return res.sendStatus(204); // No content
+  if (!cookies?.jwt) return res.sendStatus(204);
 
   const refreshToken = cookies.jwt;
 
@@ -131,10 +112,9 @@ const refresh = (req, res) => {
     async (err, decoded) => {
       if (err) return res.status(403).json({ message: "Forbidden" });
 
-      const sanitizedUsername = validator.normalizeEmail(decoded.username); // Normalize the email for consistency
-      const foundUser = await User.findOne({ email: sanitizedUsername }).exec(); // Use sanitized email
-      if (!foundUser)
-        return res.status(401).json({ message: "Unauthorized user" });
+      const sanitizedUsername = validator.normalizeEmail(decoded.username);
+      const foundUser = await User.findOne({ email: sanitizedUsername }).exec();
+      if (!foundUser) return res.status(401).json({ message: "Unauthorized user" });
 
       const accessToken = jwt.sign(
         {
@@ -155,16 +135,16 @@ const refresh = (req, res) => {
 // Logout
 const logout = (req, res) => {
   const cookies = req.cookies;
-  if (!cookies?.jwt) return res.sendStatus(204); // No content
+  if (!cookies?.jwt) return res.sendStatus(204);
   res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
   res.json({ message: "Cookie cleared" });
 };
 
-// Validate user authentication
+// Validate user authentication data
 const validateAuth = (data) => {
   const schema = Joi.object({
     email: Joi.string().email().required().label("Email"),
-    password: Joi.string().min(6).required().label("Password"), // Minimum length for password
+    password: Joi.string().min(6).required().label("Password"),
   });
   return schema.validate(data);
 };
