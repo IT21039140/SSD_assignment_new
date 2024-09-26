@@ -9,8 +9,6 @@ const stripe = Stripe(
   "sk_test_51MzASQCqzSR1UB2eMsDHitJ4OeQizkxaYUySMVae15qauDPxmakT24IfGl0iMa5Jr3CvpDyT84CRXRBnyzvQv2pZ00PtWqEuiE"
 );
 
-
-
 //-------------------------------------------------------------------------------------------------------
 //handle the order creation after completed payment
 
@@ -20,7 +18,7 @@ const handleOrder = (data, customer, lineItems) => {
     return {
       productId: item.description,
       quantity: item.quantity,
-      unit_amount: item.price.unit_amount/100.0,
+      unit_amount: item.price.unit_amount / 100.0,
     };
   });
 
@@ -28,14 +26,15 @@ const handleOrder = (data, customer, lineItems) => {
 
   userId = customer.metadata.userId;
   products = productData;
-  subtotal = data.amount_subtotal/100.0;
-  total = data.amount_total/100.0;
+  subtotal = data.amount_subtotal / 100.0;
+  total = data.amount_total / 100.0;
   shipping = data.shipping_details.address;
   payment_status = data.payment_status;
 
   // **Change made here:**
   axios
-    .post("https://localhost:5003/api/orders/", { // Changed from http to https
+    .post("https://localhost:5003/api/orders/", {
+      // Changed from http to https
       userId,
       products,
       subtotal,
@@ -48,10 +47,6 @@ const handleOrder = (data, customer, lineItems) => {
     })
     .catch((error) => console.log(error));
 };
-
-
-
-
 
 //------------------------------------------------------------------------------------
 //create a checkout using stripe payment gateway
@@ -116,11 +111,6 @@ const makeACheckout = async (req, res) => {
   res.send({ url: session.url });
 };
 
-
-
-
-
-
 //--------------------------------------------------------------------------------------------
 //Stripe webhook - used to fetch data from payment in stripe
 
@@ -138,7 +128,10 @@ const stripeWebhook = (req, res) => {
       console.log("webhook verified");
     } catch (err) {
       console.log(`Webhook Error: ${err.message}`);
-      res.status(400).send(`Webhook Error: ${err.message}`);
+      //res.status(400).send(`Webhook Error: ${err.message}`);
+      console.error(`Webhook Error: ${err.message}`); // Log the actual error internally
+      res.status(400).send("Webhook Error"); // Send a generic error message to the client
+
       return;
     }
     data = event.data.object;
