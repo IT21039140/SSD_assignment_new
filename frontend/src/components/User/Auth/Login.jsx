@@ -32,6 +32,47 @@ const Login = () => {
     setData({ ...data, [input.name]: input.value });
   };
 
+  useEffect(() => {
+    const checkGoogleAuth = async () => {
+      const params = new URLSearchParams(window.location.search);
+      console.log(params);
+      const userData = params.get('user'); // assuming your backend sends user data back as a query parameter
+      console.log(userData);
+      const accessToken = params.get('accessToken'); // similarly for the access token
+  
+      if (userData && accessToken) {
+        const parsedUserData = JSON.parse(userData); // Parse the user data if it's sent as JSON string
+        console.log(parsedUserData); //
+        setAuth({
+          userdata: parsedUserData,
+          role: parsedUserData.type,
+          accessToken: accessToken,
+        });
+  
+        // Redirect based on user type after setting auth
+        switch (parsedUserData.type) {
+          case "admin":
+            navigate("/admin", { replace: true });
+            break;
+          case "buyer":
+            navigate("/customer/profile", { replace: true });
+            break;
+          case "seller":
+            navigate("/seller/profile", { replace: true });
+            break;
+          default:
+            navigate("/", { replace: true });
+            break;
+        }
+      }
+    };
+  
+    checkGoogleAuth();
+  }, [navigate, setAuth]);
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:5005/api/auth/google"; // Redirects to backend
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -41,7 +82,7 @@ const Login = () => {
           "CSRF-Token": csrfToken, // Include the CSRF token in the headers
         },
       });
-      
+
       setAuth({
         userdata: res.data,
         role: res.data.type,
@@ -65,7 +106,11 @@ const Login = () => {
       }
     } catch (error) {
       console.log(error);
-      if (error.response && error.response.status >= 400 && error.response.status <= 500) {
+      if (
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status <= 500
+      ) {
         setError(error.response.data.message);
       } else {
         setError("An unexpected error occurred. Please try again.");
@@ -110,13 +155,17 @@ const Login = () => {
               <Button className="btnsign" variant="primary" type="submit">
                 Submit
               </Button>
+              <Button
+                className="btn-google"
+                variant="primary"
+                onClick={handleGoogleLogin}
+              >
+                Login with Google
+              </Button>
             </div>
             <div className="frmtext">
               <small>
-                Don't have an account?{" "}
-                <a href="/signup">
-                  Create account
-                </a>
+                Don't have an account? <a href="/signup">Create account</a>
               </small>
             </div>
           </Form>

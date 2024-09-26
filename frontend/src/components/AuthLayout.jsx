@@ -5,14 +5,17 @@ import useAuth from "../hooks/useAuth";
 export default function AuthLayout({ allowedR }) {
   const { auth } = useAuth();
   const location = useLocation();
-  return (
 
-    auth.role === allowedR ? (
+  // Check if the user is authenticated
+  if (auth.userdata) {
+    // If authenticated, check for role
+    return auth.role === allowedR ? (
       <Outlet />
-    ) : auth?.userdata ? (
-      <Navigate to="/unauthorized" state={{ from: location }} replace />
     ) : (
-      <Navigate to="/login" state={{ from: location }} replace />
-    )
-  );
+      <Navigate to="/unauthorized" state={{ from: location }} replace />
+    );
+  }
+
+  // If not authenticated, redirect to login
+  return <Navigate to="/login" state={{ from: location }} replace />;
 }

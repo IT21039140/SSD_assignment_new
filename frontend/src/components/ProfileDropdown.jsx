@@ -3,11 +3,25 @@ import React from "react";
 import { BsFillPersonFill } from "react-icons/bs";
 import { useNavigate, Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { useContext } from "react";
+import AuthContext from "../context/AuthContext";
 
 function ProfileDropdown() {
   const { auth, setAuth } = useAuth();
   const navigate = useNavigate();
-  const logout = () => {
+  const { clearAuth } = useContext(AuthContext);
+
+  const logout = async() => {
+    try {
+      await fetch("http://localhost:5005/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // Ensure cookies are sent
+      });
+      clearAuth(); // Clear local auth state
+      window.location.href = "/login"; // Redirect to login page or home
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
     localStorage.clear("auth");
     setAuth({});
     navigate("/");
