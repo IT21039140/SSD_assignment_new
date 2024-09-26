@@ -4,16 +4,26 @@ import axios from 'axios';
 import swal from 'sweetalert';
 
 const AddProductModal = ({ show, handleClose }) => {
-  var [tital, setTital] = useState('');
-  var [category, setCategory] = useState('');
-  var [description, setDescription] = useState('');
-  var [quantity, setQuantity] = useState('');
-  var [price, setPrice] = useState('');
-  var [image, setImage] = useState('');
-  var [sellerId, setSellerId] = useState('');
-  var [sellerUsername, setSellerUsername] = useState('');
+  const [tital, setTital] = useState('');
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [price, setPrice] = useState('');
+  const [image, setImage] = useState('');
+  const [sellerId, setSellerId] = useState('');
+  const [csrfToken, setCsrfToken] = useState(''); // State to store the CSRF token
 
+  // Fetch the CSRF token when the component mounts
   useEffect(() => {
+    axios
+      .get('http://localhost:5004/api/csrf-token', { withCredentials: true }) // Make sure to include credentials if using cookies
+      .then((response) => {
+        setCsrfToken(response.data.csrfToken); // Set the CSRF token in state
+      })
+      .catch((err) => {
+        console.error('Error fetching CSRF token:', err);
+      });
+
     /*const sellerInfo = JSON.parse(localStorage.getItem('userInfo'));
     const getSellerId = sellerInfo['_id'];
     setSellerId(getSellerId);*/
@@ -30,18 +40,25 @@ const AddProductModal = ({ show, handleClose }) => {
       description,
       sellerId,
     };
-    console.log('Checking new  product details: ', newProduct);
+    console.log('Checking new product details: ', newProduct);
 
     axios
-      .post('http://localhost:5004/api/products', newProduct)
+      .post('http://localhost:5004/api/products', newProduct, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken, // Include the CSRF token in the request headers
+        },
+        withCredentials: true, // Ensure cookies are sent with the request
+      })
       .then(() => {
         swal('Product Added!', 'Product Added Successfully!', 'success');
-        setTimeout(function () {
+        setTimeout(() => {
           window.location.reload();
         }, 1000);
       })
       .catch((err) => {
-        swal('Error!', 'Error in Adding Product!', err);
+        swal('Error!', 'Error in Adding Product!', 'error');
+        console.error('Error adding product:', err);
       });
 
     handleClose();
@@ -69,50 +86,47 @@ const AddProductModal = ({ show, handleClose }) => {
           />
         </div>
 
-        <div class='form-group'>
-          <label for='description'>Product Description</label>
+        <div className='form-group'>
+          <label htmlFor='description'>Product Description</label>
           <input
             type='text'
-            class='form-control'
+            className='form-control'
             placeholder='Enter product Description'
-            // name="description"
             value={description}
             onChange={(e) => {
               setDescription(e.target.value);
             }}
           />
         </div>
-        <div class='form-group'>
-          <label for='quantity'>Quantity</label>
+        <div className='form-group'>
+          <label htmlFor='quantity'>Quantity</label>
           <input
             type='number'
-            class='form-control'
+            className='form-control'
             placeholder='Enter Quantity'
-            // name="quantity"
             value={quantity}
             onChange={(e) => {
               setQuantity(e.target.value);
             }}
           />
         </div>
-        <div class='form-group'>
-          <label for='price'>Price</label>
+        <div className='form-group'>
+          <label htmlFor='price'>Price</label>
           <input
             type='number'
-            class='form-control'
+            className='form-control'
             placeholder='Price'
-            // name="price"
             value={price}
             onChange={(e) => {
               setPrice(e.target.value);
             }}
           />
         </div>
-        <div class='form-group'>
-          <label for='image'>Image</label>
+        <div className='form-group'>
+          <label htmlFor='image'>Image</label>
           <input
             type='text'
-            class='form-control'
+            className='form-control'
             placeholder='Image URL'
             value={image}
             onChange={(e) => {
@@ -124,16 +138,17 @@ const AddProductModal = ({ show, handleClose }) => {
       <Modal.Footer>
         <button
           type='submit'
-          class='btn btn-success'
-          variant='secondary'
-          onClick={handleSubmit}>
+          className='btn btn-success'
+          onClick={handleSubmit}
+        >
           Add Product
         </button>
-        <button class='btn btn-danger' variant='primary' onClick={handleClose}>
+        <button className='btn btn-danger' onClick={handleClose}>
           Close
         </button>
       </Modal.Footer>
     </Modal>
   );
 };
+
 export default AddProductModal;
