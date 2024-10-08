@@ -193,7 +193,7 @@ const getOrder = async (req, res) => {
     }
 
     try {
-        // Sanitize query to prevent NoSQL injection
+        // Sanitize query to prevent NoSQL injection   {"$ne": null} 
         const order = await Order.findById(mongoose.Types.ObjectId(id)) // FIX: Use mongoose.Types.ObjectId(id) for parameterized query
 
         if (!order) {
